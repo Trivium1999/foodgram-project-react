@@ -5,6 +5,42 @@ from django.core.validators import MinValueValidator, RegexValidator
 User = get_user_model()
 
 
+class Ingredient(models.Model):
+    name = models.CharField('Название', max_length=60)
+    unit_measure = models.CharField(max_length=20)
+
+    class Meta:
+        ordering = ('name',)
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
+
+    def __str__(self):
+        return f'{self.name}, {self.unit_measure}'
+
+
+class Tag(models.Model):
+    name = models.CharField(
+        max_length=50,
+        unique=True
+    )
+    color = models.CharField(
+        max_length=7,
+        validators=[
+            RegexValidator(regex=r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+                           message='Цвет должен быть в формате HEX')
+        ],
+    )
+    slug = models.SlugField(unique=True)
+
+    class Meta:
+        verbose_name = 'Тег'
+        verbose_name_plural = 'Теги'
+        unique_together = ('name', 'slug')
+
+    def __str__(self):
+        return f'{self.name}, {self.slug}'
+
+
 class Recipes(models.Model):
     title = models.CharField('Название рецепта', max_length=250)
     description = models.TextField('Описание', max_length=500)
@@ -17,7 +53,7 @@ class Recipes(models.Model):
     ingredients = models.ManyToManyField(
         Ingredient,
         related_name='recipes',
-        through='recipes.IngredientList',
+        through='recipes.IngredientsList',
         verbose_name='Ингредиенты'
     )
     image = models.ImageField(upload_to='image/', null=True, blank=True)
@@ -27,19 +63,8 @@ class Recipes(models.Model):
 
     class Meta:
         verbose_name = 'Рецепт'
-        ordering = ('-pub_date')
-
-
-class Ingredient(models.Model):
-    name = models.CharField('Название', max_length=60)
-    unit_measure = models.CharField(max_length=20)
-
-    class Meta:
-        ordering = ('name',)
-        verbose_name = 'Ингредиент'
-
-    def __str__(self):
-        return f'{self.name}, {self.unit_measure}'
+        verbose_name_plural = 'Рецепты'
+        ordering = ('-pub_date',)
 
 
 class IngredientsList(models.Model):
@@ -60,31 +85,10 @@ class IngredientsList(models.Model):
     )
 
     class Meta:
-        ordering = ('recipe__name',)
+        ordering = ('recipe__title',)
 
     def __str__(self):
         return f'{self.recipe}, {self.ingredients}, {self.count}'
-
-
-class Tag(models.Model):
-    name = models.CharField(
-        max_length=50,
-        unique=True
-    )
-    color = models.CharField(
-        max_length=7,
-        validators=[
-            RegexValidator(regex=r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
-                           message='Цвет должен быть в формате HEX')
-        ],
-    )
-    slug = models.SlugField(unique=True)
-
-    class Meta:
-        unique_together = ('name', 'slug')
-
-    def __str__(self):
-        return f'{self.name}, {self.slug}'
 
 
 class TagRecipe(models.Model):
@@ -119,6 +123,10 @@ class Favorite(models.Model):
         on_delete=models.CASCADE
     )
 
+    class Meta:
+        verbose_name = 'Избранный рецепт'
+        verbose_name_plural = 'Избранные рецепты'
+
     def __str__(self):
         return f'{self.user} / {self.recipe}'
 
@@ -134,6 +142,10 @@ class ShoppingList(models.Model):
         related_name='shopping_list',
         on_delete=models.CASCADE
     )
+
+    class Meta:
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
 
     def __str__(self):
         return f'{self.user} / {self.recipe}'
