@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.validators import UniqueTogetherValidator
 from drf_extra_fields.fields import Base64ImageField
 from djoser.serializers import UserSerializer, UserCreateSerializer
@@ -15,7 +16,8 @@ from recipes.models import (Recipes,
 class MyUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField(read_only=True)
     recipes = serializers.SerializerMethodField(read_only=True)
-    recipe_count = serializers.SerializerMethodField(read_only=True)
+    recipes_count = serializers.SerializerMethodField(read_only=True)
+    permission_classes = (IsAuthenticated, )
 
     class Meta:
         model = User
@@ -27,7 +29,7 @@ class MyUserSerializer(UserSerializer):
             'last_name',
             'is_subscribed',
             'recipes',
-            'recipe_count'
+            'recipes_count'
         ]
 
     def get_is_subscribed(self, obj):
@@ -40,7 +42,7 @@ class MyUserSerializer(UserSerializer):
         request = self.context.get('request')
         return RecipeSerializer(
             current_user.recipes,
-            namy=True,
+            many=True,
             context={'request': request}
         ).data
 
@@ -53,6 +55,7 @@ class CreateUserSerializer(UserCreateSerializer):
         model = User
         fields = [
             'email',
+            'id',
             'username',
             'first_name',
             'last_name',
@@ -78,7 +81,7 @@ class IngredientListSerializer(serializers.ModelSerializer):
     unit_measure = serializers.ReadOnlyField(
         source='ingredients.unit_measure'
     )
-    
+
     class Meta:
         model = IngredientsList
         fields = ['id', 'name', 'unit_measure', 'count']
@@ -94,16 +97,17 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipes
-        fields = ['id',
-                  'author',
-                  'tags',
-                  'ingredients',
-                  'is_favorite',
-                  'is_shopping_list',
-                  'image',
-                  'title',
-                  'description',
-                  'time'
+        fields = [
+            'id',
+            'author',
+            'tags',
+            'ingredients',
+            'is_favorite',
+            'is_shopping_list',
+            'image',
+            'title',
+            'description',
+            'time'
         ]
 
     def get_ingredients(self, obj):
@@ -116,7 +120,9 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def get_is_shopping_list(self, obj):
         request = self.context.get('request')
-        return ShoppingList.objects.filter(user=request.user, recipe=obj).exists()
+        return ShoppingList.objects.filter(
+            user=request.user, recipe=obj
+        ).exists()
 
 
 class AddingRecipeList(serializers.ModelSerializer):
@@ -149,6 +155,13 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             'time'
         ]
 
+    def create_ingredient(self, ingredients_list, recipe):
+        for i in ingredients_list:
+            ingredient = Ingredient.objects.get(id=i['id'])
+            IngredientsList.objects.create(
+                ingredients=ingredient, recipe=recipe, count=i['count']
+            )
+
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
@@ -173,12 +186,10 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def create_ingredient(self, ingredients_list, recipe):
-        for i in ingredients_list:
-            ingredient = Ingredient.objects.get(id=i['id'])
-            IngredientsList.objects.create(
-                ingredients=ingredient, recipe=recipe, count=i['count']
-            )
+    def to_representation(self, instance):
+        return RecipeSerializer(instance, context={
+            'request': self.context.get('request')
+        }).data
 
 
 class ShoppingListSerializer(serializers.ModelSerializer):

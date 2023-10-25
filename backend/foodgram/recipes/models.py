@@ -6,8 +6,8 @@ User = get_user_model()
 
 
 class Ingredient(models.Model):
-    name = models.CharField('Название', max_length=60)
-    unit_measure = models.CharField(max_length=20)
+    name = models.CharField('Название', max_length=100)
+    unit_measure = models.CharField(max_length=16)
 
     class Meta:
         ordering = ('name',)

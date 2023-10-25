@@ -4,7 +4,7 @@ from django.db.models import Sum
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
@@ -24,7 +24,6 @@ from .serializers import (TagSerializer,
                           IngredientSerializer,
                           RecipeSerializer,
                           RecipeCreateSerializer,
-                          ShoppingListSerializer,
                           MyUserSerializer,
                           SubscribeSerializer)
 from .permissios import IsAdminOrAuthorOrReadOnly
@@ -33,15 +32,15 @@ from .permissios import IsAdminOrAuthorOrReadOnly
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = [AllowAny, ]
     pagination_class = None
 
 
 class RecipesViewSet(viewsets.ModelViewSet):
     queryset = Recipes.objects.all()
+    serializer_class = RecipeSerializer
     permission_classes = [IsAdminOrAuthorOrReadOnly, ]
     pagination_class = RecipePagination
-    filter_backends = [DjangoFilterBackend, ]
+    filter_backends = (DjangoFilterBackend, )
     # filterset_class = 
 
     def get_serializer_class(self):
@@ -176,9 +175,9 @@ class RecipesViewSet(viewsets.ModelViewSet):
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    permission_classes = [AllowAny, ]
     pagination_class = None
-    # filter_backends = 
+    filter_backends = (DjangoFilterBackend,)
+    # filterset_class =
     search_fields = ['^title', ]
 
 
