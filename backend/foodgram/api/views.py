@@ -166,7 +166,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 recipe__shopping_list__user=request.user
             ).values(
                 'ingredient__name',
-                'ingredient__unit_measure'
+                'ingredient__measurement_unit'
             ).order_by(
                 'ingredient__name'
             ).annotate(ingredient_value=Sum('count'))

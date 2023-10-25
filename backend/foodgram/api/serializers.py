@@ -71,6 +71,12 @@ class CreateUserSerializer(UserCreateSerializer):
             'password'
         ]
 
+    # def create(self, validated_data):
+    #     if not all(field in validated_data for field in ['first_name', 'last_name']):
+    #         raise ValueError("Поля 'first_name' и 'last_name' обязательны для заполнения.")
+    #     user = User.objects.create(**validated_data)
+    #     return user
+
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
@@ -87,14 +93,14 @@ class IngredientSerializer(serializers.ModelSerializer):
 class IngredientListSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField(source='ingredients.id')
     name = serializers.ReadOnlyField(source='ingredients.name')
-    unit_measure = serializers.ReadOnlyField(
-        source='ingredients.unit_measure'
+    measurement_unit = serializers.ReadOnlyField(
+        source='ingredients.measurement_unit'
     )
     count = serializers.IntegerField()
 
     class Meta:
         model = IngredientsList
-        fields = ['id', 'name', 'unit_measure', 'count']
+        fields = ['id', 'name', 'measurement_unit', 'count']
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -102,7 +108,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     # ingredients = serializers.SerializerMethodField()
     ingredients = IngredientSerializer(
-        many=True, source='recipe'
+        many=True, source='ingredient'
     )
     is_favorite = serializers.SerializerMethodField()
     is_shopping_list = serializers.SerializerMethodField()
@@ -154,7 +160,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         queryset=Tag.objects.all(), many=True, required=True
     )
     image = Base64ImageField(max_length=None, use_url=True)
-    cooking_time = serializers.IntegerField(write_only=True)
+    time = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Recipes

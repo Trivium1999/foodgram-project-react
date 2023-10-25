@@ -22,9 +22,9 @@ class RecipeAdmin(admin.ModelAdmin):
 
 
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('pk', 'name', 'unit_measure')
-    list_editable = ('name', 'unit_measure')
-    search_fields = ('name', 'unit_measure')
+    list_display = ('pk', 'name', 'measurement_unit')
+    list_editable = ('name', 'measurement_unit')
+    search_fields = ('name', 'measurement_unit')
     empty_value_display = '-пусто-'
 
 
