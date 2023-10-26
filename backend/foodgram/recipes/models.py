@@ -25,6 +25,7 @@ class Tag(models.Model):
     )
     color = models.CharField(
         max_length=7,
+        unique=True,
         validators=[
             RegexValidator(regex=r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
                            message='Цвет должен быть в формате HEX')
@@ -42,8 +43,8 @@ class Tag(models.Model):
 
 
 class Recipes(models.Model):
-    title = models.CharField('Название рецепта', max_length=250)
-    description = models.TextField('Описание', max_length=500)
+    name = models.CharField('Название рецепта', max_length=250)
+    text = models.TextField('Описание', max_length=500, blank=False)
     author = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
@@ -56,10 +57,12 @@ class Recipes(models.Model):
         through='recipes.IngredientsList',
         verbose_name='Ингредиенты'
     )
-    image = models.ImageField(upload_to='image/', null=True, blank=True)
-    tags = models.ManyToManyField(Tag, related_name='recipes')
-    time = models.PositiveSmallIntegerField(validators=[MinValueValidator(1),])
-    pub_date = models.DateTimeField(auto_now_add=True)
+    image = models.ImageField(upload_to='image/', null=True, blank=False)
+    tags = models.ManyToManyField(Tag, blank=False, related_name='recipes')
+    cooking_time = models.PositiveSmallIntegerField(validators=[
+        MinValueValidator(1),
+        ])
+    pub_date = models.DateTimeField(auto_now_add=True, db_index=True,)
 
     class Meta:
         verbose_name = 'Рецепт'
@@ -78,17 +81,17 @@ class IngredientsList(models.Model):
         related_name='recipe',
         on_delete=models.CASCADE
     )
-    count = models.PositiveSmallIntegerField(
+    amount = models.PositiveSmallIntegerField(
         validators=[
             MinValueValidator(1),
         ]
     )
 
     class Meta:
-        ordering = ('recipe__title',)
+        ordering = ('recipe__name',)
 
     def __str__(self):
-        return f'{self.recipe}, {self.ingredients}, {self.count}'
+        return f'{self.recipe}, {self.ingredients}, {self.amount}'
 
 
 class TagRecipe(models.Model):
@@ -134,18 +137,17 @@ class Favorite(models.Model):
 class ShoppingList(models.Model):
     user = models.ForeignKey(
         User,
-        related_name='shopping_list',
         on_delete=models.CASCADE
     )
     recipe = models.ForeignKey(
         Recipes,
-        related_name='shopping_list',
         on_delete=models.CASCADE
     )
 
     class Meta:
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
+        default_related_name = 'shopping_list'
 
     def __str__(self):
         return f'{self.user} / {self.recipe}'

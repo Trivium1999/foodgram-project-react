@@ -40,10 +40,18 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipesViewSet(viewsets.ModelViewSet):
     queryset = Recipes.objects.all()
     serializer_class = RecipeSerializer
-    permission_classes = [IsAdminOrAuthorOrReadOnly, ]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,
+                          IsAdminOrAuthorOrReadOnly, ]
     pagination_class = RecipePagination
     filter_backends = (DjangoFilterBackend, )
     # filterset_class = 
+
+    # def get_queryset(self):
+    #     return Recipes.objects.prefetch_related(
+    #         'ingredient__recipe',
+    #         'tags',
+    #         'author'
+    #     ).all()
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -70,19 +78,36 @@ class RecipesViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
-    def delete_recipe(class_object, user, recipe):
-        try:
-            del_recipe = class_object.objects.get(user=user, recipe=recipe)
-        except class_object.DoesNotExist:
-            return Response(
-                {'errors': 'Невозможно удалить'},
-                status=status.HTTP_400_BAD_REQUEST
+    def add_remove_recipe(self, request, id, model):
+        recipe = get_object_or_404(Recipes, id=id)
+        obj, created = model.objects.select_related(
+            'user', 'recipe'
+        ).get_or_create(user=request.user, recipe=recipe)
+        if request.method == 'POST' and created:
+            serializer = RecipeSerializer(
+                recipe,
+                context={'request': request}
             )
-        del_recipe.delete()
-        return Response(
-            {'detail': 'Удаление прошло успешно'},
-            status=status.HTTP_204_NO_CONTENT
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        if request.method == 'DELETE' and obj:
+            obj.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        raise exceptions.ValidationError(
+            detail='Вы уже совершили это действие!'
         )
+    # def delete_recipe(class_object, user, recipe):
+    #     try:
+    #         del_recipe = class_object.objects.get(user=user, recipe=recipe)
+    #     except class_object.DoesNotExist:
+    #         return Response(
+    #             {'errors': 'Невозможно удалить'},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
+    #     del_recipe.delete()
+    #     return Response(
+    #         {'detail': 'Удаление прошло успешно'},
+    #         status=status.HTTP_204_NO_CONTENT
+    #     )
 
     @action(methods=['POST', 'DELETE'], detail=True)
     def favorite(self, request, pk):
@@ -169,7 +194,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 'ingredient__measurement_unit'
             ).order_by(
                 'ingredient__name'
-            ).annotate(ingredient_value=Sum('count'))
+            ).annotate(ingredient_value=Sum('amount'))
         )
         return self.create_shopping_list(ingredients_list)
 
@@ -180,13 +205,14 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
     filter_backends = (DjangoFilterBackend,)
     # filterset_class =
-    search_fields = ['^title', ]
+    # search_fields = ['^name', ]
 
 
 class SubscribeViewSet(UserViewSet):
     queryset = User.objects.all()
     serializer_class = MyUserSerializer
-    permission_classes = [IsAuthenticated, ]
+    pagination_class = RecipePagination
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
 
     @action(
         detail=True,

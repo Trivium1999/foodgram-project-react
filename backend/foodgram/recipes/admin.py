@@ -10,14 +10,14 @@ from .models import (Recipes,
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'pk',
-        'title',
-        'description',
+        'name',
+        'text',
         'author',
-        'time',
+        'cooking_time',
         'pub_date'
     )
-    list_editable = ('author', 'title', 'description')
-    search_fields = ('title', 'author')
+    list_editable = ('author', 'name', 'text')
+    search_fields = ('name', 'author')
     empty_value_display = '-пусто-'
 
 
