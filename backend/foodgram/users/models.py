@@ -2,12 +2,19 @@ from django.db import models
 from django.db.models import UniqueConstraint
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 
 
 class User(AbstractUser):
+    USER = 'user'
+    ADMIN = 'admin'
+
+    ROLE_CHOICES = [
+        (USER, 'Пользователь'),
+        (ADMIN, 'Администратор')
+    ]
+
     email = models.EmailField('Email', max_length=150, unique=True)
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
     username = models.CharField(
         'Имя пользователя',
         max_length=150,
@@ -25,13 +32,27 @@ class User(AbstractUser):
         max_length=150,
         blank=False
     )
+    role = models.CharField(
+        'Права пользователя',
+        choices=ROLE_CHOICES,
+        default=USER,
+        max_length=5
+    )
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        ordering = ('username',)
 
     def __str__(self):
         return self.username
+
+    @property
+    def is_admin(self):
+        return self.role == self.ADMIN or self.is_staff
 
 
 class Subscribe(models.Model):
@@ -60,3 +81,14 @@ class Subscribe(models.Model):
 
     def __str__(self):
         return f'{self.user} подписан на {self.author}'
+
+    def clean(self):
+        if self.user == self.author:
+            raise ValidationError(
+                {'title': 'Нельзя подписаться на самого себя!'}
+            )
+        super().clean()
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)

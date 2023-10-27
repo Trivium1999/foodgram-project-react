@@ -98,10 +98,10 @@ class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipes
         fields = [
-            'id',
-            'author',
             'tags',
             'ingredients',
+            'id',
+            'author',
             'is_favorited',
             'is_in_shopping_list',
             'image',
@@ -159,12 +159,12 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipes
         fields = [
+            'tags',
+            'ingredients',
             'id',
             'author',
             'name',
             'text',
-            'ingredients',
-            'tags',
             'image',
             'cooking_time'
         ]

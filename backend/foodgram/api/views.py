@@ -205,7 +205,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
     filter_backends = (DjangoFilterBackend,)
     # filterset_class =
-    # search_fields = ['^name', ]
+    search_fields = ['^name', ]
 
 
 class SubscribeViewSet(UserViewSet):
