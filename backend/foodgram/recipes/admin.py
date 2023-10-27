@@ -1,10 +1,33 @@
 from django.contrib import admin
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet
 
 from .models import (Recipes,
                      Ingredient,
+                     IngredientsList,
                      Tag,
                      Favorite,
                      ShoppingList)
+
+
+class IngredientRecipeForm(BaseInlineFormSet):
+
+    def clean(self):
+        super(IngredientRecipeForm, self).clean()
+        for form in self.forms:
+            if not hasattr(form, 'cleaned_data'):
+                continue
+            data = form.cleaned_data
+            if data.get('DELETE'):
+                raise ValidationError(
+                    'Нельзя удалять все ингредиенты из рецепта даже в админке!'
+                )
+
+
+class IngredientRecipeInLine(admin.TabularInline):
+    model = IngredientsList
+    min_num = 1
+    formset = IngredientRecipeForm
 
 
 class RecipeAdmin(admin.ModelAdmin):
@@ -18,6 +41,7 @@ class RecipeAdmin(admin.ModelAdmin):
     )
     list_editable = ('author', 'name', 'text')
     search_fields = ('name', 'author')
+    inlines = (IngredientRecipeInLine,)
     empty_value_display = '-пусто-'
 
 

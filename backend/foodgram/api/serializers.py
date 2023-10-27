@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.validators import UniqueTogetherValidator
 from django.db import IntegrityError
 from django.core.files.base import ContentFile
+from django.core.validators import MinValueValidator
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer, UserCreateSerializer
 
@@ -88,8 +89,8 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class IngredientListSerializer(serializers.ModelSerializer):
-    id = serializers.ReadOnlyField(source='recipe.id')
-    name = serializers.ReadOnlyField(source='recipe.name')
+    id = serializers.ReadOnlyField(source='ingredients.id')
+    name = serializers.ReadOnlyField(source='ingredients.name')
     measurement_unit = serializers.ReadOnlyField(
         source='ingredients.measurement_unit'
     )
@@ -131,18 +132,26 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def get_is_favorited(self, obj):
         request = self.context.get('request')
-        return Favorite.objects.filter(user=request.user, recipe=obj).exists()
+        return Favorite.objects.filter(
+            user=request.user.id, recipe=obj
+        ).exists()
 
     def get_is_in_shopping_list(self, obj):
         request = self.context.get('request')
         return ShoppingList.objects.filter(
-            user=request.user, recipe=obj
+            user=request.user.id, recipe=obj
         ).exists()
 
 
 class AddingRecipeList(serializers.ModelSerializer):
-    id = serializers.IntegerField(write_only=True)
+    id = serializers.IntegerField()
     amount = serializers.IntegerField(write_only=True)
+        # validators=(
+        #     MinValueValidator(
+        #         1,
+        #         message='Количество ингредиента должно быть 1 или более.'
+        #     ),
+        # )
 
     class Meta:
         model = IngredientsList
@@ -157,26 +166,33 @@ class AddingRecipeList(serializers.ModelSerializer):
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
-    author = MyUserSerializer(read_only=True)
-    ingredients = AddingRecipeList(many=True, required=True)
+    # author = MyUserSerializer(read_only=True)
+    ingredients = AddingRecipeList(many=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(), many=True, required=True
     )
     image = Base64ImageField(max_length=None, use_url=True)
-    cooking_time = serializers.IntegerField(write_only=True)
+    # cooking_time = serializers.IntegerField()
 
     class Meta:
         model = Recipes
         fields = [
-            'tags',
             'ingredients',
-            'id',
-            'author',
-            'name',
-            'text',
+            'tags',
+            # 'id',
             'image',
+            'name',
+            # 'author',
+            'text',
             'cooking_time'
         ]
+
+    def validate_cooking_time(self, value):
+        if value < 1 or value > 5000:
+            raise serializers.ValidationError(
+                'Пожалуйста, указывайте адекватное время готовки!'
+            )
+        return value
 
     def validate(self, attrs):
         ingredients = attrs.get('ingredients')
