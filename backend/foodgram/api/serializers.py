@@ -1,10 +1,10 @@
+import base64
 from rest_framework import serializers, validators
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.validators import UniqueTogetherValidator
 from django.db import IntegrityError
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
-from drf_extra_fields.fields import Base64ImageField
 from djoser.serializers import UserSerializer, UserCreateSerializer
 
 from users.models import Subscribe, User
@@ -41,6 +41,18 @@ class MyUserSerializer(UserSerializer):
         return False
 
 
+class ShortUserSerializer(MyUserSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+        ]
+
+
 class CreateUserSerializer(UserCreateSerializer):
     class Meta:
         model = User
@@ -53,11 +65,14 @@ class CreateUserSerializer(UserCreateSerializer):
             'password'
         ]
 
-    # def create(self, validated_data):
-    #     if not all(field in validated_data for field in ['first_name', 'last_name']):
-    #         raise ValueError("Поля 'first_name' и 'last_name' обязательны для заполнения.")
-    #     user = User.objects.create(**validated_data)
-    #     return user
+
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith('data:image'):
+            format, imgstr = data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
+        return super().to_internal_value(data)
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -73,8 +88,8 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class IngredientListSerializer(serializers.ModelSerializer):
-    id = serializers.ReadOnlyField(source='ingredients.id')
-    name = serializers.ReadOnlyField(source='ingredients.name')
+    id = serializers.ReadOnlyField(source='recipe.id')
+    name = serializers.ReadOnlyField(source='recipe.name')
     measurement_unit = serializers.ReadOnlyField(
         source='ingredients.measurement_unit'
     )
@@ -86,11 +101,9 @@ class IngredientListSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    author = MyUserSerializer(read_only=True)
+    author = ShortUserSerializer(read_only=True)
     tags = TagSerializer(many=True)
-    ingredients = IngredientListSerializer(
-        many=True, source='ingredient'
-    )
+    ingredients = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_list = serializers.SerializerMethodField()
     image = Base64ImageField()
@@ -110,15 +123,11 @@ class RecipeSerializer(serializers.ModelSerializer):
             'cooking_time'
         ]
 
-    # def get_ingredients(self, obj):
-    #     ingredients = IngredientsList.objects.filter(recipe=obj)
-    #     return IngredientListSerializer(ingredients, many=True).data
+    def get_ingredients(self, obj):
+        ingredients = IngredientsList.objects.filter(recipe=obj)
+        serializer = IngredientListSerializer(ingredients, many=True)
 
-    def check_recipe(self, model, obj):
-        user = self.context.get('request').user
-        if user.is_anonymous:
-            return False
-        return model.objects.filter(user=user, recipe=obj).exists()
+        return serializer.data
 
     def get_is_favorited(self, obj):
         request = self.context.get('request')
@@ -212,8 +221,8 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         author = self.context.get('request').user
         try:
             recipe = Recipes.objects.create(author=author, **validated_data)
-            self.create_ingredient(ingredients, recipe)
             recipe.tags.set(tags)
+            self.create_ingredient(ingredients, recipe)
             return recipe
         except IntegrityError:
             raise serializers.ValidationError(
