@@ -14,7 +14,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from .pagination import RecipePagination
-from .filters import IngredientSearchFilter, RecipeFilter
+from .filters import IngredientFilter, RecipeFilter
 from users.models import Subscribe, User
 from recipes.models import (Recipes,
                             Tag,
@@ -27,6 +27,7 @@ from .serializers import (TagSerializer,
                           RecipeSerializer,
                           RecipeCreateSerializer,
                           MyUserSerializer,
+                          FavoriteSerializer,
                           SubscribeSerializer,
                           ShoppingListSerializer)
 from .permissios import IsAdminOrAuthorOrReadOnly, IsAuthorOrReadOnly
@@ -37,7 +38,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     pagination_class = None
     filter_backends = (DjangoFilterBackend,)
-    filterset_class = IngredientSearchFilter
+    filterset_class = IngredientFilter
     # search_fields = ['^name', ]
 
 
@@ -115,20 +116,25 @@ class RecipesViewSet(viewsets.ModelViewSet):
             permission_classes=(permissions.IsAuthenticated,),
         )
     def favorite(self, request, pk):
-        recipe_obj = get_object_or_404(Recipes, pk=pk)
+        user = self.request.user
+        recipe = get_object_or_404(Recipes, pk=pk)
+        object = FavoriteSerializer.Meta.model.objects.filter(
+            user=user, recipe=recipe
+        )
         if request.method == 'POST':
-            return self.create_recipe(
-                class_object=Favorite,
-                user=request.user,
-                recipe=recipe_obj,
-                serializer=RecipeSerializer
+            serializer = FavoriteSerializer(
+                data={'user': user.id, 'recipe': pk},
+                context={'request': self.request}
             )
-        elif request.method == 'DELETE':
-            return self.delete_recipe(
-                class__object=Favorite,
-                user=request.user,
-                recipe=recipe_obj
-            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        if self.request.method == 'DELETE':
+            if object.exists():
+                object.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({'error': 'Этого рецепта нет в списке'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
     def get_shopping_cart(self, request, pk):
         recipe = get_object_or_404(Recipes, pk=pk)
