@@ -14,6 +14,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from .pagination import RecipePagination
+from .filters import IngredientSearchFilter, RecipeFilter
 from users.models import Subscribe, User
 from recipes.models import (Recipes,
                             Tag,
@@ -36,8 +37,8 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     pagination_class = None
     filter_backends = (DjangoFilterBackend,)
-    # filterset_class =
-    search_fields = ['^name', ]
+    filterset_class = IngredientSearchFilter
+    # search_fields = ['^name', ]
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -52,16 +53,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthorOrReadOnly,]
     pagination_class = RecipePagination
     filter_backends = (DjangoFilterBackend, )
-    # filterset_class = 
-
-    # def get_queryset(self):
-    #     return Recipes.objects.prefetch_related(
-    #         'ingredient__recipe',
-    #         'tags',
-    #         'author'
-    #     ).all()
+    filterset_class = RecipeFilter
 
     def get_serializer_class(self):
+        """Можно ли валидацию update перенести сюда?"""
         if self.request.method == 'GET':
             return RecipeSerializer
         return RecipeCreateSerializer
@@ -236,7 +231,7 @@ class SubscribeViewSet(UserViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def subscriptions(self, request):
-        queryset = User.objects.filter(subscriber__user=self.request.user)
+        queryset = User.objects.filter(authors__user=self.request.user)
         serializer = SubscribeSerializer(
             self.paginate_queryset(queryset),
             context={'request': request},
