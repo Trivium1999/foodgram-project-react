@@ -19,7 +19,7 @@ from users.models import Subscribe, User
 from recipes.models import (Recipes,
                             Tag,
                             Favorite,
-                            ShoppingList,
+                            ShoppingCart,
                             Ingredient,
                             IngredientsList)
 from .serializers import (TagSerializer,
@@ -54,6 +54,18 @@ class RecipesViewSet(viewsets.ModelViewSet):
     pagination_class = RecipePagination
     filter_backends = (DjangoFilterBackend, )
     filterset_class = RecipeFilter
+
+    def create(self, request):
+        serializer = RecipeCreateSerializer(
+            data=request.data, context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        recipe = serializer.save()
+        return Response(
+            RecipeSerializer(
+                recipe, context={'request': request}
+            ).data,  status=status.HTTP_201_CREATED
+        )
 
     def get_serializer_class(self):
         """Можно ли валидацию update перенести сюда?"""
@@ -118,7 +130,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 recipe=recipe_obj
             )
 
-    def get_shopping_list(self, request, pk):
+    def get_shopping_cart(self, request, pk):
         recipe = get_object_or_404(Recipes, pk=pk)
         if request.method == 'POST':
             serializer = ShoppingListSerializer(
@@ -126,20 +138,20 @@ class RecipesViewSet(viewsets.ModelViewSet):
             )
             serializer.is_valid(raise_exeption=True)
             serializer.save()
-            shopping_list_serializer = RecipeSerializer(recipe)
+            shopping_cart_serializer = RecipeSerializer(recipe)
             return Response(
-                shopping_list_serializer.data, status=status.HTTP_201_CREATED
+                shopping_cart_serializer.data, status=status.HTTP_201_CREATED
             )
-        shopping_list_serializer = get_object_or_404(
-            ShoppingList, user=request.user, recipe=recipe
+        shopping_cart_serializer = get_object_or_404(
+            ShoppingCart, user=request.user, recipe=recipe
         )
-        shopping_list_serializer.delete()
+        shopping_cart_serializer.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def create_shopping_list(ingredients_list):
+    def create_shopping_cart(ingredients_list):
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = (
-            "attachment; filename='shopping_list.pdf'"
+            "attachment; filename='shopping_cart.pdf'"
         )
         pdfmetrics.registerFont(
             TTFont('Arial', 'data/arial.ttf', 'UTF-8')
@@ -173,14 +185,14 @@ class RecipesViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=['GET'],
-        url_path='download_shopping_list',
-        url_name='download_shopping_list',
+        url_path='download_shopping_cart',
+        url_name='download_shopping_cart',
         permission_classes=(permissions.IsAuthenticated,)
     )
-    def download_shopping_list(self, request):
+    def download_shopping_cart(self, request):
         ingredients_list = (
             IngredientsList.objects.filter(
-                recipe__shopping_list__user=request.user
+                recipe__shopping_cart__user=request.user
             ).values(
                 'ingredient__name',
                 'ingredient__measurement_unit'
@@ -188,7 +200,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 'ingredient__name'
             ).annotate(ingredient_value=Sum('amount'))
         )
-        return self.create_shopping_list(ingredients_list)
+        return self.create_shopping_cart(ingredients_list)
 
 
 class SubscribeViewSet(UserViewSet):

@@ -12,7 +12,7 @@ from users.models import Subscribe, User
 from recipes.models import (Recipes,
                             Tag,
                             Favorite,
-                            ShoppingList,
+                            ShoppingCart,
                             Ingredient,
                             IngredientsList,
                             TagRecipe)
@@ -107,7 +107,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     ingredients = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_list = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
     image = Base64ImageField()
 
     class Meta:
@@ -118,7 +118,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             'author',
             'ingredients',
             'is_favorited',
-            'is_in_shopping_list',
+            'is_in_shopping_cart',
             'name',
             'image',
             'text',
@@ -137,19 +137,16 @@ class RecipeSerializer(serializers.ModelSerializer):
             return False
         return Favorite.objects.filter(user=user, recipe=obj).exists()
 
-    def get_is_in_shopping_list(self, obj):
+    def get_is_in_shopping_cart(self, obj):
         user = self.context.get('request').user
         if user.is_anonymous:
             return False
-        return ShoppingList.objects.filter(user=user, recipe=obj).exists()
+        return ShoppingCart.objects.filter(user=user, recipe=obj).exists()
 
 
 class AddingRecipeList(serializers.ModelSerializer):
-    """несколько тестов валятся из за этого. если убираю write_only, то выдает ошибку.
-    а если оставляю, то неправильно отображается. Может создать отдельный сериализатор
-    для отображения параметров рецепта"""
-    id = serializers.IntegerField()
-    amount = serializers.IntegerField(write_only=True)
+    id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
+    # amount = serializers.IntegerField(read_only=True)
         # validators=(
         #     MinValueValidator(
         #         1,
@@ -160,13 +157,6 @@ class AddingRecipeList(serializers.ModelSerializer):
     class Meta:
         model = IngredientsList
         fields = ['id', 'amount']
-
-    def validate_amount(self, value):
-        if value < 1 or value > 5000:
-            raise serializers.ValidationError(
-                'Нужно указать кол-во от 1 до 5000!'
-            )
-        return value
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
@@ -198,6 +188,13 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             )
         return value
 
+    # def validate_amount(self, value):
+    #     if value < 1 or value > 5000:
+    #         raise serializers.ValidationError(
+    #             'Нужно указать кол-во от 1 до 5000!'
+    #         )
+    #     return value
+
     def validate(self, attrs):
         ingredients = attrs.get('ingredients')
         if not ingredients:
@@ -206,7 +203,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             )
         unique_ings = []
         for ingredient in ingredients:
-            ing = get_object_or_404(Ingredient, id=ingredient.get('id'))
+            ing = ingredient.get('id')
             if ing in unique_ings:
                 raise serializers.ValidationError(
                     'Не стоит добавлять один и тот же ингредиент много раз!'
@@ -233,7 +230,8 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
     def create_ingredient(self, ingredients_list, recipe):
         for i in ingredients_list:
-            ingredient = Ingredient.objects.get(id=i['id'])
+            print(i)
+            ingredient = i['id']
             IngredientsList.objects.create(
                 ingredients=ingredient, recipe=recipe, amount=i['amount']
             )
@@ -291,11 +289,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
 class ShoppingListSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ShoppingList
+        model = ShoppingCart
         fields = '__all__'
         validators = [
             validators.UniqueTogetherValidator(
-                queryset=ShoppingList.objects.all(),
+                queryset=ShoppingCart.objects.all(),
                 fields=('user', 'recipe'),
                 message='Этот рецепт уже есть в списке покупок'
             )

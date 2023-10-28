@@ -7,7 +7,7 @@ from .models import (Recipes,
                      IngredientsList,
                      Tag,
                      Favorite,
-                     ShoppingList)
+                     ShoppingCart)
 
 
 class IngredientRecipeForm(BaseInlineFormSet):
@@ -77,4 +77,4 @@ admin.site.register(Recipes, RecipeAdmin)
 admin.site.register(Ingredient, IngredientAdmin)
 admin.site.register(Tag, TagAdmin)
 admin.site.register(Favorite, FavoriteAdmin)
-admin.site.register(ShoppingList, ShoppingListAdmin)
+admin.site.register(ShoppingCart, ShoppingListAdmin)
