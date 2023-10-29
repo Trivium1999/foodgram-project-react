@@ -46,7 +46,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipesViewSet(viewsets.ModelViewSet):
     queryset = Recipes.objects.all()
     serializer_class = RecipeSerializer
-    permission_classes = [IsAuthorOrReadOnly,]
+    permission_classes = (IsAuthorOrReadOnly, )
     pagination_class = RecipePagination
     filter_backends = (DjangoFilterBackend, )
     filterset_class = RecipeFilter
@@ -60,7 +60,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
         return Response(
             RecipeSerializer(
                 recipe, context={'request': request}
-            ).data,  status=status.HTTP_201_CREATED
+            ).data, status=status.HTTP_201_CREATED
         )
 
     def get_serializer_class(self):
@@ -104,12 +104,12 @@ class RecipesViewSet(viewsets.ModelViewSet):
         )
 
     @action(
-            methods=['POST', 'DELETE'],
-            detail=True,
-            url_path='favorite',
-            url_name='favorite',
-            permission_classes=(permissions.IsAuthenticated,),
-        )
+        methods=['POST', 'DELETE'],
+        detail=True,
+        url_path='favorite',
+        url_name='favorite',
+        permission_classes=(permissions.IsAuthenticated,),
+    )
     def favorite(self, request, pk):
         user = self.request.user
         recipe = get_object_or_404(Recipes, pk=pk)

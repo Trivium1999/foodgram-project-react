@@ -59,9 +59,9 @@ class Recipes(models.Model):
     )
     image = models.ImageField(upload_to='image/', null=True, blank=False)
     tags = models.ManyToManyField(Tag, blank=False, related_name='recipes')
-    cooking_time = models.PositiveSmallIntegerField(validators=[
-        MinValueValidator(1),
-        ])
+    cooking_time = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), ]
+    )
     pub_date = models.DateTimeField(auto_now_add=True, db_index=True,)
 
     class Meta:
