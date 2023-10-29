@@ -1,6 +1,4 @@
-import io
 from django.shortcuts import HttpResponse, get_object_or_404
-from django.db.models import Sum
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from rest_framework import viewsets, status, permissions
@@ -17,7 +15,8 @@ from users.models import Subscribe, User
 from recipes.models import (Recipes,
                             Tag,
                             Ingredient,
-                            IngredientsList)
+                            IngredientsList
+                            )
 from .serializers import (TagSerializer,
                           IngredientSerializer,
                           RecipeSerializer,
@@ -132,8 +131,11 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Этого рецепта нет в списке'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['POST', 'DELETE'], detail=True)
+    @action(methods=['POST', 'DELETE'], detail=True,
+            permission_classes=(permissions.IsAuthenticatedOrReadOnly,))
     def get_shopping_cart(self, request, pk):
+        if request.user.is_anonymous:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         user = self.request.user
         recipe = get_object_or_404(Recipes, pk=pk)
         object = ShoppingListSerializer.Meta.model.objects.filter(
@@ -156,7 +158,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Этого рецепта нет в списке'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, permission_classes=(IsAuthenticatedOrReadOnly,))
     def download_shopping_cart(self, request):
+        if request.user.is_anonymous:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = (
             "attachment; filename='shopping_cart.pdf'"
@@ -197,9 +202,7 @@ class SubscribeViewSet(UserViewSet):
 
     @action(
         detail=True,
-        methods=['POST', 'DELETE'],
-        url_path='subscribe',
-        url_name='subscribe'
+        methods=['POST', 'DELETE']
     )
     def subscribe(self, request, id):
         user = request.user

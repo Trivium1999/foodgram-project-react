@@ -1,12 +1,8 @@
 import base64
-from rest_framework import serializers, validators
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-# from rest_framework.validators import UniqueTogetherValidator
 from django.db import IntegrityError
 from django.core.files.base import ContentFile
-# from django.core.validators import MinValueValidator
-# from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer, UserCreateSerializer
 
 from users.models import Subscribe, User
@@ -15,8 +11,7 @@ from recipes.models import (Recipes,
                             Favorite,
                             ShoppingCart,
                             Ingredient,
-                            IngredientsList,
-                            TagRecipe)
+                            IngredientsList)
 
 
 class MyUserSerializer(UserSerializer):
@@ -157,6 +152,12 @@ class AddingRecipeList(serializers.ModelSerializer):
         fields = ['id', 'amount']
 
 
+class RecipeInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipes
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
 class RecipeCreateSerializer(serializers.ModelSerializer):
     ingredients = AddingRecipeList(many=True)
     tags = serializers.PrimaryKeyRelatedField(
@@ -203,10 +204,16 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                     'Не стоит добавлять один и тот же ингредиент много раз!'
                 )
             unique_ings.append(ing)
-            """Не проходит проверка, есть ли ингредиент при update"""
         if not unique_ings:
             raise serializers.ValidationError('Нужно добавить ингредиент')
         return attrs
+
+    def validate_update_tags(self, data):
+        unique_tags = self.initial_data.get('tag')
+        if not unique_tags:
+            raise ValidationError('Нужно выбрать хотя бы 1 тег!')
+        data.update({'tags': unique_tags})
+        return data
 
     def validate_tags(self, tags):
         unique_tags = []
@@ -217,25 +224,24 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         for tag in tags:
             if tag in unique_tags:
                 raise serializers.ValidationError(
-                    'Не стоит добавлять один и тот же ингредиент много раз!'
+                    'Не стоит добавлять один и тот же тег много раз!'
                 )
             unique_tags.append(tag)
         return tags
 
     def create_ingredient(self, ingredients_list, recipe):
         for i in ingredients_list:
-            print(i)
             ingredient = i['id']
             IngredientsList.objects.create(
                 ingredients=ingredient, recipe=recipe, amount=i['amount']
             )
 
-    def create_tags_recipe(self, tags, recipe):
-        for tag in tags:
-            TagRecipe.objects.create(
-                tag_id=tag.id,
-                recipe=recipe
-            )
+    # def create_tags_recipe(self, tags, recipe):
+    #     for tag in tags:
+    #         TagRecipe.objects.create(
+    #             tag_id=tag.id,
+    #             recipe=recipe
+    #         )
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
@@ -270,14 +276,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 class ShoppingListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingCart
-        # fields = '__all__'
-        # validators = [
-        #     validators.UniqueTogetherValidator(
-        #         queryset=ShoppingCart.objects.all(),
-        #         fields=('user', 'recipe'),
-        #         message='Этот рецепт уже есть в списке покупок'
-        #     )
-        # ]
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
@@ -295,13 +293,13 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         context = {'request': self.context.get('request')}
-        return RecipeSerializer(instance.recipe, context=context).data
+        return RecipeInfoSerializer(instance.recipe, context=context).data
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
-    recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
-    is_subscribed = serializers.SerializerMethodField()
+    recipes = RecipeInfoSerializer(read_only=True, many=True)
+    recipes_count = serializers.SerializerMethodField(read_only=True)
+    is_subscribed = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
@@ -316,16 +314,13 @@ class SubscribeSerializer(serializers.ModelSerializer):
             'recipes_count',
         )
 
-    def get_recipes(self, obj):
+    def get_recipes(self, object):
         request = self.context.get('request')
-        context = {'request': request}
-        recipes_limit = self.context.get('request').query_params.get(
-            'recipes_limit'
-        )
-        recipes = obj.recipes.all()
-        if recipes_limit:
-            recipes = recipes[:int(recipes_limit)]
-            return RecipeSerializer(recipes, context=context, many=True).data
+        limit = request.GET.get('resipes_limit')
+        queryset = Recipes.objects.filter(author=object.author)
+        if limit:
+            queryset = queryset[:int(limit)]
+        return RecipeInfoSerializer(queryset, many=True).data
 
     def get_is_subscribed(self, object):
         user = self.context.get('request').user
