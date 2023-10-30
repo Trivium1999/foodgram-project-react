@@ -17,6 +17,7 @@ from recipes.models import (Recipes,
                             Ingredient,
                             IngredientsList
                             )
+
 from .serializers import (TagSerializer,
                           IngredientSerializer,
                           RecipeSerializer,
@@ -24,7 +25,6 @@ from .serializers import (TagSerializer,
                           MyUserSerializer,
                           FavoriteSerializer,
                           SubscribeSerializer,
-                          RecipeInfoSerializer,
                           ShoppingListSerializer
                           )
 from .permissios import IsAuthorOrReadOnly
@@ -170,10 +170,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
         response['Content-Disposition'] = (
             "attachment; filename='shopping_cart.pdf'"
         )
-        p = canvas.Canvas(response)
-        arial = ttfonts.TTFont('Arial', 'data/arial.ttf')
-        pdfmetrics.registerFont(arial)
-        p.setFont('Arial', 14)
+        pdfmetrics.registerFont(ttfonts.TTFont('Arial', 'data/arial.ttf'))
+        canvas.Canvas(response).setFont('Arial', 14)
 
         ingredients = IngredientsList.objects.filter(
             recipe__shopping_cart__user=request.user).values_list(
@@ -187,14 +185,14 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 ingr_list[name]['amount'] += amount
         height = 700
 
-        p.drawString(100, 750, 'Список покупок')
+        canvas.Canvas(response).drawString(100, 750, 'Список покупок')
         for i, (name, data) in enumerate(ingr_list.items(), start=1):
-            p.drawString(
+            canvas.Canvas(response).drawString(
                 80, height,
                 f"{i}. {name} – {data['amount']} {data['unit']}")
             height -= 25
-        p.showPage()
-        p.save()
+        canvas.Canvas(response).showPage()
+        canvas.Canvas(response).save()
         return response
 
 
