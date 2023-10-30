@@ -24,7 +24,9 @@ from .serializers import (TagSerializer,
                           MyUserSerializer,
                           FavoriteSerializer,
                           SubscribeSerializer,
-                          ShoppingListSerializer)
+                          RecipeInfoSerializer,
+                          ShoppingListSerializer
+                          )
 from .permissios import IsAuthorOrReadOnly
 
 
@@ -34,7 +36,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
-    # search_fields = ['^name', ]
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -133,7 +134,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
     @action(methods=['POST', 'DELETE'], detail=True,
             permission_classes=(permissions.IsAuthenticatedOrReadOnly,))
-    def get_shopping_cart(self, request, pk):
+    def shopping_cart(self, request, pk):
         if request.user.is_anonymous:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         user = self.request.user
@@ -146,9 +147,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 data={'user': user.id, 'recipe': pk},
                 context={'request': self.request}
             )
-            serializer.is_valid(raise_exeption=True)
+            serializer.is_valid(raise_exception=True)
             serializer.save()
-            # shopping_cart_serializer = RecipeSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
@@ -158,7 +158,11 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Этого рецепта нет в списке'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, permission_classes=(IsAuthenticatedOrReadOnly,))
+    @action(
+        methods=['GET'],
+        detail=False,
+        permission_classes=(IsAuthenticatedOrReadOnly,)
+    )
     def download_shopping_cart(self, request):
         if request.user.is_anonymous:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -173,7 +177,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
 
         ingredients = IngredientsList.objects.filter(
             recipe__shopping_cart__user=request.user).values_list(
-            'ingredient__name', 'amount', 'ingredient__measurement_unit')
+            'ingredients__name', 'amount', 'ingredients__measurement_unit')
 
         ingr_list = {}
         for name, amount, unit in ingredients:

@@ -16,7 +16,6 @@ from recipes.models import (Recipes,
 
 class MyUserSerializer(UserSerializer):
     is_subscribed = serializers.SerializerMethodField(read_only=True)
-    # permission_classes = (IsAuthenticated, )
 
     class Meta:
         model = User
@@ -139,13 +138,6 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 class AddingRecipeList(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
-    # amount = serializers.IntegerField(read_only=True)
-    # validators=(
-    #     MinValueValidator(
-    #         1,
-    #         message='Количество ингредиента должно быть 1 или более.'
-    #     ),
-    # )
 
     class Meta:
         model = IngredientsList
@@ -182,13 +174,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                 'Пожалуйста, указывайте адекватное время готовки!'
             )
         return value
-
-    # def validate_amount(self, value):
-    #     if value < 1 or value > 5000:
-    #         raise serializers.ValidationError(
-    #             'Нужно указать кол-во от 1 до 5000!'
-    #         )
-    #     return value
 
     def validate(self, attrs):
         ingredients = attrs.get('ingredients')
@@ -273,11 +258,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         }).data
 
 
-class ShoppingListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ShoppingCart
-
-
 class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
@@ -294,6 +274,11 @@ class FavoriteSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         context = {'request': self.context.get('request')}
         return RecipeInfoSerializer(instance.recipe, context=context).data
+
+
+class ShoppingListSerializer(FavoriteSerializer):
+    class Meta(FavoriteSerializer.Meta):
+        model = ShoppingCart
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
