@@ -44,7 +44,7 @@ class Tag(models.Model):
 
 class Recipes(models.Model):
     name = models.CharField('Название рецепта', max_length=200)
-    text = models.TextField('Описание', max_length=500, blank=False)
+    text = models.TextField('Описание', blank=False)
     author = models.ForeignKey(
         User,
         on_delete=models.PROTECT,

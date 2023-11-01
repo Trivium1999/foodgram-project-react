@@ -12,12 +12,12 @@ from reportlab.pdfgen import canvas
 from .pagination import RecipePagination
 from .filters import IngredientFilter, RecipeFilter
 from users.models import Subscribe, User
-from recipes.models import (Recipes,
+from recipes.models import (
+                            Recipes,
                             Tag,
                             Ingredient,
                             IngredientsList
                             )
-
 from .serializers import (TagSerializer,
                           IngredientSerializer,
                           RecipeSerializer,
@@ -53,6 +53,8 @@ class RecipesViewSet(viewsets.ModelViewSet):
     filterset_class = RecipeFilter
 
     def create(self, request):
+        if request.user.is_anonymous:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         serializer = RecipeCreateSerializer(
             data=request.data, context={'request': request}
         )
@@ -65,60 +67,23 @@ class RecipesViewSet(viewsets.ModelViewSet):
         )
 
     def get_serializer_class(self):
-        """Можно ли валидацию update перенести сюда?"""
         if self.request.method == 'GET':
             return RecipeSerializer
         return RecipeCreateSerializer
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context.update({'request': self.request})
-        return context
+    # def get_serializer_context(self):
+    #     context = super().get_serializer_context()
+    #     context.update({'request': self.request})
+    #     return context
 
-    def create_recipe(class_object, user, recipe, serializer):
-        already_existed, created = class_object.objects.get_or_create(
-            user=user,
-            recipe=recipe
-        )
-        if not created:
-            return Response(
-                {'errors': 'Нельзя создать запись'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        return Response(
-            serializer(recipe).data,
-            status=status.HTTP_201_CREATED
-        )
-
-    def delete_recipe(class_object, user, recipe):
-        try:
-            del_recipe = class_object.objects.get(user=user, recipe=recipe)
-        except class_object.DoesNotExist:
-            return Response(
-                {'errors': 'Невозможно удалить'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        del_recipe.delete()
-        return Response(
-            {'detail': 'Удаление прошло успешно'},
-            status=status.HTTP_204_NO_CONTENT
-        )
-
-    @action(
-        methods=['POST', 'DELETE'],
-        detail=True,
-        url_path='favorite',
-        url_name='favorite',
-        permission_classes=(permissions.IsAuthenticated,),
-    )
-    def favorite(self, request, pk):
+    def creating_and_deleting(self, pk, ser_class):
         user = self.request.user
         recipe = get_object_or_404(Recipes, pk=pk)
-        object = FavoriteSerializer.Meta.model.objects.filter(
+        object = ser_class.Meta.model.objects.filter(
             user=user, recipe=recipe
         )
-        if request.method == 'POST':
-            serializer = FavoriteSerializer(
+        if self.request.method == 'POST':
+            serializer = ser_class(
                 data={'user': user.id, 'recipe': pk},
                 context={'request': self.request}
             )
@@ -132,31 +97,20 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Этого рецепта нет в списке'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+    @action(
+        methods=['POST', 'DELETE'],
+        detail=True,
+        permission_classes=(permissions.IsAuthenticated,),
+    )
+    def favorite(self, request, pk):
+        return self.creating_and_deleting(pk, FavoriteSerializer)
+
     @action(methods=['POST', 'DELETE'], detail=True,
             permission_classes=(permissions.IsAuthenticatedOrReadOnly,))
     def shopping_cart(self, request, pk):
         if request.user.is_anonymous:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
-        user = self.request.user
-        recipe = get_object_or_404(Recipes, pk=pk)
-        object = ShoppingListSerializer.Meta.model.objects.filter(
-            user=user, recipe=recipe
-        )
-        if request.method == 'POST':
-            serializer = ShoppingListSerializer(
-                data={'user': user.id, 'recipe': pk},
-                context={'request': self.request}
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        if request.method == 'DELETE':
-            if object.exists():
-                object.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
-            return Response({'error': 'Этого рецепта нет в списке'},
-                            status=status.HTTP_400_BAD_REQUEST)
+        return self.creating_and_deleting(pk, ShoppingListSerializer)
 
     @action(
         methods=['GET'],

@@ -5,22 +5,11 @@ from recipes.models import Ingredient, Recipes
 
 
 class IngredientFilter(FilterSet):
-    name = filters.CharFilter(method='filter_name')
+    name = filters.CharFilter(lookup_expr="icontains")
 
     class Meta:
         model = Ingredient
         fields = ('name',)
-
-    def filter_name(self, queryset, name, value):
-        """Метод возвращает кверисет с заданным именем ингредиента."""
-        return queryset.filter(
-            Q(name__istartswith=value) | Q(name__icontains=value)
-        ).annotate(
-            startswith=ExpressionWrapper(
-                Q(name__istartswith=value),
-                output_field=BooleanField()
-            )
-        ).order_by('-startswith')
 
 
 class RecipeFilter(FilterSet):
