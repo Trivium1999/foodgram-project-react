@@ -24,8 +24,8 @@ services:
       - db
 
   frontend:
-    build: ./frontend
-      context: ../frontend
+    build: 
+      context: ./frontend
       dockerfile: Dockerfile
     env_file: .env
     command: cp -r /app/build/. /staticfiles/
