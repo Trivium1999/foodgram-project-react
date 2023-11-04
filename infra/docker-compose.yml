@@ -13,9 +13,7 @@ services:
       - pg_data:/var/lib/postgresql/data
 
   backend:
-    build:
-      context: ../backend/
-      dockerfile: Dockerfile
+    image: little4one/foodgram_backend
     env_file: .env
     volumes:
       - static:/app/static
@@ -24,11 +22,7 @@ services:
       - db
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-#    env_file: .env
-#    command: cp -r /app/build/. /staticfiles/
+    image: little4one/foodgram_frontend
     volumes:
       - ../frontend/:/app/result_build/
 
