@@ -2,25 +2,17 @@ import csv
 
 from django.core.management import BaseCommand
 
-from foodgram import settings
-from recipes.models import Ingredient, Tag
-
-MODELS_FILES = {
-    Ingredient: 'ingredients.csv',
-    Tag: 'tags.csv',
-}
+from recipes.models import Ingredient
 
 
 class Command(BaseCommand):
-    def handle(self, *args, **options):
-        for model, file in MODELS_FILES.items():
-            with open(
-                    f'{settings.BASE_DIR}/data/{file}',
-                    'r', encoding='utf-8',
-            ) as table:
-                reader = csv.DictReader(table)
-                model.objects.bulk_create(model(**data) for data in reader)
 
-        self.stdout.write(self.style.SUCCESS(
-            '=== Ингредиенты и теги успешно загружены ===')
-        )
+    def handle(self, *args, **kwargs):
+        with open('data/ingredients.csv', encoding='UTF-8') as file:
+            for row in csv.reader(file):
+                name, measurement_unit = row
+                Ingredient.objects.create(
+                    name=name,
+                    measurement_unit=measurement_unit
+                )
+            print('Импорт данных завершен!')
