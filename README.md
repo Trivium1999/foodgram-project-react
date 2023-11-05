@@ -39,7 +39,7 @@ docker compose exec backend python manage.py createsuperuser
 ```
 - Наполните базу данных ингредиентами и тегами
 ```bash
-docker-compose exec backend python manage.py load_data
-
+docker compose exec backend python manage.py load_data
+```
 Проект доступен по адресу: http://foodgram-little4one.sytes.net
 Автор: Анна Романова
