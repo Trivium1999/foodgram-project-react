@@ -1,5 +1,4 @@
-[![.github/workflows/main.yml](https://github.com/Trivium1999/foodgram-project-react/actions/workflows/main.yml/badge.svg)]
-(https://github.com/Trivium1999/foodgram-project-react/actions/workflows/main.yml)
+[![.github/workflows/main.yml](https://github.com/Trivium1999/foodgram-project-react/actions/workflows/main.yml/badge.svg)](https://github.com/Trivium1999/foodgram-project-react/actions/workflows/main.yml)
 
 # Foodgram - социальная сеть для любителей готовить
 
