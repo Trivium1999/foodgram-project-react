@@ -1,7 +1,8 @@
 import base64
+
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from django.db import IntegrityError
+
 from django.core.files.base import ContentFile
 from djoser.serializers import UserSerializer, UserCreateSerializer
 

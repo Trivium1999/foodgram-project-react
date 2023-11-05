@@ -1,33 +1,24 @@
 from django.shortcuts import HttpResponse, get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from rest_framework import viewsets, status, permissions
-from rest_framework.response import Response
-from rest_framework.permissions import (IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
-from rest_framework.decorators import action
+from recipes.models import Ingredient, IngredientsList, Recipes, Tag
 from reportlab.pdfbase import pdfmetrics, ttfonts
 from reportlab.pdfgen import canvas
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import (IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
+from rest_framework.response import Response
 
-from .pagination import RecipePagination
-from .filters import IngredientFilter, RecipeFilter
 from users.models import Subscribe, User
-from recipes.models import (
-                            Recipes,
-                            Tag,
-                            Ingredient,
-                            IngredientsList
-                            )
-from .serializers import (TagSerializer,
-                          IngredientSerializer,
-                          RecipeSerializer,
-                          RecipeCreateSerializer,
-                          MyUserSerializer,
-                          FavoriteSerializer,
-                          SubscribeSerializer,
-                          ShoppingListSerializer
-                          )
+
+from .filters import IngredientFilter, RecipeFilter
+from .pagination import RecipePagination
 from .permissios import IsAuthorOrReadOnly
+from .serializers import (FavoriteSerializer, IngredientSerializer,
+                          MyUserSerializer, RecipeCreateSerializer,
+                          RecipeSerializer, ShoppingListSerializer,
+                          SubscribeSerializer, TagSerializer)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
