@@ -260,9 +260,9 @@ class FavoriteSerializer(serializers.ModelSerializer):
         return RecipeInfoSerializer(instance.recipe, context=context).data
 
 
-class ShoppingListSerializer(FavoriteSerializer):
-    class Meta(FavoriteSerializer.Meta):
-        model = ShoppingCart
+# class ShoppingListSerializer(FavoriteSerializer):
+#     class Meta(FavoriteSerializer.Meta):
+#         model = ShoppingCart
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
