@@ -2,10 +2,10 @@ from django.shortcuts import HttpResponse, get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from django.db.models import Sum
-from django.http import FileResponse
+# from django.http import FileResponse
 from recipes.models import Ingredient, IngredientsList, Recipes, Tag
-from reportlab.pdfbase import pdfmetrics, ttfonts
-from reportlab.pdfgen import canvas
+# from reportlab.pdfbase import pdfmetrics, ttfonts
+# from reportlab.pdfgen import canvas
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (IsAuthenticated)
@@ -108,10 +108,10 @@ class RecipesViewSet(viewsets.ModelViewSet):
         if request.user.is_anonymous:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         ingredients = (IngredientsList.objects.filter(
-            recipe__shopping_cart__user=request.user).values(
-                'ingredients__name',
-                'ingredients__measurement_unit'
-            ).annotate(anoumt=Sum('amount')))
+            recipe__shopping_cart__user=request.user
+        ).values(
+            'ingredients__name', 'ingredients__measurement_unit'
+        ).annotate(anoumt=Sum('amount')))
         ingr_list = []
         for ingredient in ingredients:
             ingr_list.append('{name} - {amount} {m_unit}\n'.format(
