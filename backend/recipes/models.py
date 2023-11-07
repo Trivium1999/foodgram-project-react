@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, RegexValidator
 
+from api.constants import MIN_VALUE_FOR_COOKING
+
 User = get_user_model()
 
 
@@ -60,7 +62,7 @@ class Recipes(models.Model):
     image = models.ImageField(upload_to='image/', null=True, blank=False)
     tags = models.ManyToManyField(Tag, blank=False, related_name='recipes')
     cooking_time = models.PositiveSmallIntegerField(
-        validators=[MinValueValidator(1), ]
+        validators=[MinValueValidator(MIN_VALUE_FOR_COOKING), ]
     )
     pub_date = models.DateTimeField(auto_now_add=True, db_index=True,)
 

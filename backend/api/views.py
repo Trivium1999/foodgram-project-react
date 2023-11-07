@@ -1,6 +1,8 @@
 from django.shortcuts import HttpResponse, get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
+from django.db.models import Sum
+from django.http import FileResponse
 from recipes.models import Ingredient, IngredientsList, Recipes, Tag
 from reportlab.pdfbase import pdfmetrics, ttfonts
 from reportlab.pdfgen import canvas
@@ -62,11 +64,6 @@ class RecipesViewSet(viewsets.ModelViewSet):
             return RecipeSerializer
         return RecipeCreateSerializer
 
-    # def get_serializer_context(self):
-    #     context = super().get_serializer_context()
-    #     context.update({'request': self.request})
-    #     return context
-
     def creating_and_deleting(self, pk, ser_class):
         user = self.request.user
         recipe = get_object_or_404(Recipes, pk=pk)
@@ -106,39 +103,53 @@ class RecipesViewSet(viewsets.ModelViewSet):
     @action(
         methods=['GET'],
         detail=False,
-        permission_classes=(IsAuthenticatedOrReadOnly,)
+        permission_classes=(IsAuthenticated,)
     )
     def download_shopping_cart(self, request):
         if request.user.is_anonymous:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = (
-            "attachment; filename='shopping_cart.pdf'"
-        )
-        pdfmetrics.registerFont(ttfonts.TTFont('Arial', 'data/arial.ttf'))
-        canvas.Canvas(response).setFont('Arial', 14)
-
-        ingredients = IngredientsList.objects.filter(
-            recipe__shopping_cart__user=request.user).values_list(
-            'ingredients__name', 'amount', 'ingredients__measurement_unit')
-
-        ingr_list = {}
-        for name, amount, unit in ingredients:
-            if name not in ingr_list:
-                ingr_list[name] = {'amount': amount, 'unit': unit}
-            else:
-                ingr_list[name]['amount'] += amount
-        height = 700
-
-        canvas.Canvas(response).drawString(100, 750, 'Список покупок')
-        for i, (name, data) in enumerate(ingr_list.items(), start=1):
-            canvas.Canvas(response).drawString(
-                80, height,
-                f"{i}. {name} – {data['amount']} {data['unit']}")
-            height -= 25
-        canvas.Canvas(response).showPage()
-        canvas.Canvas(response).save()
+        ingredients = (IngredientsList.objects.filter(
+            recipe__shopping_carts__user=request.user).values(
+                'ingredient__name',
+                'ingredient__measurement_unit'
+            ).annotate(anoumt=Sum('amount')))
+        ingr_list = []
+        for ingredient in ingredients:
+            ingr_list.append('{name} - {amount} {m_unit}\n'.format(
+                name=ingredient.get('inredient__name'),
+                amount=ingredient.get('amount'),
+                m_unit=ingredient.get('ingredient__measurement_unit')
+            ))
+        response = FileResponse(ingr_list, content_type='text/plain')
         return response
+        # response = HttpResponse(content_type='application/pdf')
+        # response['Content-Disposition'] = (
+        #     "attachment; filename='shopping_cart.pdf'"
+        # )
+        # pdfmetrics.registerFont(ttfonts.TTFont('Arial', 'data/arial.ttf'))
+        # canvas.Canvas(response).setFont('Arial', 14)
+
+        # ingredients = IngredientsList.objects.filter(
+        #     recipe__shopping_cart__user=request.user).values_list(
+        #     'ingredients__name', 'amount', 'ingredients__measurement_unit')
+
+        # ingr_list = {}
+        # for name, amount, unit in ingredients:
+        #     if name not in ingr_list:
+        #         ingr_list[name] = {'amount': amount, 'unit': unit}
+        #     else:
+        #         ingr_list[name]['amount'] += amount
+        # height = 700
+
+        # canvas.Canvas(response).drawString(100, 750, 'Список покупок')
+        # for i, (name, data) in enumerate(ingr_list.items(), start=1):
+        #     canvas.Canvas(response).drawString(
+        #         80, height,
+        #         f"{i}. {name} – {data['amount']} {data['unit']}")
+        #     height -= 25
+        # canvas.Canvas(response).showPage()
+        # canvas.Canvas(response).save()
+        # return response
 
 
 class SubscribeViewSet(UserViewSet):

@@ -3,6 +3,7 @@ import base64
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from django.db import transaction
 from django.core.files.base import ContentFile
 from djoser.serializers import UserSerializer, UserCreateSerializer
 
@@ -13,9 +14,7 @@ from recipes.models import (Recipes,
                             ShoppingCart,
                             Ingredient,
                             IngredientsList)
-
-
-MIN_VALUE_FOR_COOKING = 1
+from .constants import MIN_VALUE_FOR_COOKING
 
 
 class MyUserSerializer(UserSerializer):
@@ -217,6 +216,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             ) for i in ingredients_list
         )
 
+    @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
@@ -226,6 +226,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         self.create_ingredient(ingredients, recipe)
         return recipe
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
