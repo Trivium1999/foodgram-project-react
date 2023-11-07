@@ -111,14 +111,14 @@ class RecipesViewSet(viewsets.ModelViewSet):
             recipe__shopping_cart__user=request.user
         ).values(
             'ingredients__name', 'ingredients__measurement_unit'
-        ).annotate(anoumt=Sum('amount')))
+        ).annotate(amount=Sum('amount')))
         ingr_list = []
         for ingredient in ingredients:
             ingr_list.append(
                 (
-                    f'* {ingredient.get("ingredients__name")} '
-                    f'({ingredient.get("ingredients__measurement_unit")}) '
+                    f'{ingredient.get("ingredients__name").upper()}'
                     f'{ingredient.get("amount")}'
+                    f'({ingredient.get("ingredients__measurement_unit")}) '
                 )
             )
         response = HttpResponse(
