@@ -114,11 +114,13 @@ class RecipesViewSet(viewsets.ModelViewSet):
         ).annotate(anoumt=Sum('amount')))
         ingr_list = []
         for ingredient in ingredients:
-            ingr_list.append('{name} - {amount} {m_unit}\n'.format(
-                name=ingredient.get('inredients__name'),
-                amount=ingredient.get('amount'),
-                m_unit=ingredient.get('ingredients__measurement_unit')
-            ))
+            ingr_list.append(
+                (
+                    f'* {ingredient.get("ingredients__name")} '
+                    f'({ingredient.get("ingredients__measurement_unit")}) '
+                    f'{ingredient.get("amount")}'
+                )
+            )
         response = HttpResponse(
             content='\n'.join(ingr_list),
             content_type='text/plain; charset=UTF-8',
