@@ -107,6 +107,12 @@ class RecipesViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         if request.user.is_anonymous:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = (
+            "attachment; filename='shopping_cart.pdf'"
+        )
+        pdfmetrics.registerFont(ttfonts.TTFont('Arial', 'data/arial.ttf'))
+        canvas.Canvas(response).setFont('Arial', 14)
         ingredients = (IngredientsList.objects.filter(
             recipe__shopping_cart__user=request.user).values(
                 'ingredients__name',
@@ -119,20 +125,17 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 amount=ingredient.get('amount'),
                 m_unit=ingredient.get('ingredients__measurement_unit')
             ))
-        response = HttpResponse(
-            content='\n'.join(ingr_list),
-            content_type='text/plain; charset=UTF-8',
-        )
-        response['Content-Disposition'] = (
-            'attachment; filename=Shopping_List.txt'
-        )
-        return response
-        # response = HttpResponse(content_type='application/pdf')
-        # response['Content-Disposition'] = (
-        #     "attachment; filename='shopping_cart.pdf'"
+        # response = HttpResponse(
+        #     content='\n'.join(ingr_list),
+        #     content_type='text/plain; charset=UTF-8',
         # )
-        # pdfmetrics.registerFont(ttfonts.TTFont('Arial', 'data/arial.ttf'))
-        # canvas.Canvas(response).setFont('Arial', 14)
+        # response['Content-Disposition'] = (
+        #     'attachment; filename=Shopping_List.txt'
+        # )
+        canvas.Canvas(response).drawString(100, 750, 'Список покупок')
+        canvas.Canvas(response).showPage()
+        canvas.Canvas(response).save()
+        return response
 
         # ingredients = IngredientsList.objects.filter(
         #     recipe__shopping_cart__user=request.user).values_list(
@@ -146,14 +149,11 @@ class RecipesViewSet(viewsets.ModelViewSet):
         #         ingr_list[name]['amount'] += amount
         # height = 700
 
-        # canvas.Canvas(response).drawString(100, 750, 'Список покупок')
         # for i, (name, data) in enumerate(ingr_list.items(), start=1):
         #     canvas.Canvas(response).drawString(
         #         80, height,
         #         f"{i}. {name} – {data['amount']} {data['unit']}")
         #     height -= 25
-        # canvas.Canvas(response).showPage()
-        # canvas.Canvas(response).save()
         # return response
 
 
