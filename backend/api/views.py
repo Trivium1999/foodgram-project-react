@@ -116,9 +116,9 @@ class RecipesViewSet(viewsets.ModelViewSet):
         for ingredient in ingredients:
             ingr_list.append(
                 (
-                    f'{ingredient.get("ingredients__name").upper()}'
-                    f'{ingredient.get("amount")}'
-                    f'({ingredient.get("ingredients__measurement_unit")}) '
+                    f'{ingredient.get("ingredients__name").title()}:  '
+                    f'{ingredient.get("amount") }'
+                    f'({ingredient.get("ingredients__measurement_unit")}) \n'
                 )
             )
         response = HttpResponse(
