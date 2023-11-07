@@ -108,18 +108,24 @@ class RecipesViewSet(viewsets.ModelViewSet):
         if request.user.is_anonymous:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         ingredients = (IngredientsList.objects.filter(
-            recipe__shopping_carts__user=request.user).values(
-                'ingredient__name',
-                'ingredient__measurement_unit'
+            recipe__shopping_cart__user=request.user).values(
+                'ingredients__name',
+                'ingredients__measurement_unit'
             ).annotate(anoumt=Sum('amount')))
         ingr_list = []
         for ingredient in ingredients:
             ingr_list.append('{name} - {amount} {m_unit}\n'.format(
-                name=ingredient.get('inredient__name'),
+                name=ingredient.get('inredients__name'),
                 amount=ingredient.get('amount'),
-                m_unit=ingredient.get('ingredient__measurement_unit')
+                m_unit=ingredient.get('ingredients__measurement_unit')
             ))
-        response = FileResponse(ingr_list, content_type='text/plain')
+        response = HttpResponse(
+            content='\n'.join(ingr_list),
+            content_type='text/plain; charset=UTF-8',
+        )
+        response['Content-Disposition'] = (
+            'attachment; filename=Shopping_List.txt'
+        )
         return response
         # response = HttpResponse(content_type='application/pdf')
         # response['Content-Disposition'] = (
