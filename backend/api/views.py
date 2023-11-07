@@ -127,6 +127,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
             'attachment; filename=Shopping_List.txt'
         )
         return response
+
         # response = HttpResponse(content_type='application/pdf')
         # response['Content-Disposition'] = (
         #     "attachment; filename='shopping_cart.pdf'"
