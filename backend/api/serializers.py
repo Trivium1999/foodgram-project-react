@@ -14,6 +14,7 @@ from recipes.models import (Recipes,
                             ShoppingCart,
                             Ingredient,
                             IngredientsList)
+
 from .constants import MIN_VALUE_FOR_COOKING
 
 
