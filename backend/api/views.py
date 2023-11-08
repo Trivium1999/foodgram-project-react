@@ -174,7 +174,7 @@ class SubscribeViewSet(UserViewSet):
         permission_classes=(permissions.IsAuthenticated,),
     )
     def subscriptions(self, request):
-        queryset = User.objects.filter(followers__user=request.user)
+        queryset = User.objects.filter(authors__user=request.user)
         serializer = SubscribeSerializer(
             self.paginate_queryset(queryset),
             context={'request': request},
