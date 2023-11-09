@@ -120,7 +120,7 @@ class RecipesViewSet(viewsets.ModelViewSet):
                 f'({ingredient.get("ingredients__measurement_unit")}) '
             )
         response = HttpResponse(
-            content='\n'.join(ingr_list),
+            ingr_list,
             content_type='text/plain'
         )
         response['Content-Disposition'] = (
