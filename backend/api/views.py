@@ -2,6 +2,7 @@ from django.shortcuts import HttpResponse, get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from django.db.models import Sum
+from django.http import FileResponse
 from recipes.models import Ingredient, IngredientsList, Recipes, Tag
 
 from rest_framework import permissions, status, viewsets
@@ -113,13 +114,13 @@ class RecipesViewSet(viewsets.ModelViewSet):
         ingr_list = []
         ingr_list += 'Список покупок:\n  '
         for ingredient in ingredients:
-            ingr_list += (
+            ingr_list.append(
                 f'\n'
                 f'{ingredient.get("ingredients__name").title()}:  '
                 f'{ingredient.get("amount") }'
                 f'({ingredient.get("ingredients__measurement_unit")}) '
             )
-        response = HttpResponse(
+        response = FileResponse(
             ingr_list,
             content_type='text/plain'
         )
