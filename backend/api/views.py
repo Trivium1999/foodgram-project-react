@@ -1,4 +1,4 @@
-from django.shortcuts import HttpResponse, get_object_or_404
+from django.shortcuts import get_object_or_404  # HttpResponse,
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from django.db.models import Sum
