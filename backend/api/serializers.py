@@ -266,7 +266,7 @@ class ShoppingListSerializer(FavoriteSerializer):
 
 
 class SubscribeSerializer(serializers.ModelSerializer):
-    recipes = serializers.SerializerMethodField(read_only=True)
+    recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField(read_only=True)
     is_subscribed = serializers.SerializerMethodField(read_only=True)
 
@@ -291,7 +291,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
         # queryset = Recipes.objects.filter(author=object)
         if limit:
             queryset = queryset[:int(limit)]
-        return RecipeInfoSerializer(queryset, read_only=True, many=True).data
+        return RecipeInfoSerializer(queryset, read_only=True, many=True)
 
     def get_is_subscribed(self, object):
         user = self.context.get('request').user
