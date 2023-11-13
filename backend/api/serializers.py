@@ -286,7 +286,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
     def get_recipes(self, object):
         request = self.context.get('request')
         limit = request.GET.get('resipes_limit')
-        queryset = object.recipe.all()
+        queryset = object.recipes.all()
         # queryset = Recipes.objects.filter(author=object)
         if limit:
             queryset = queryset[:int(limit)]
