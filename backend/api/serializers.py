@@ -292,7 +292,6 @@ class SubscribeSerializer(serializers.ModelSerializer):
             queryset = queryset[:int(limit)]
         return RecipeInfoSerializer(queryset, many=True).data
 
-
     def get_is_subscribed(self, object):
         user = self.context.get('request').user
         if user.is_anonymous:
