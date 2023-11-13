@@ -285,7 +285,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
 
     def get_recipes(self, object):
         request = self.context.get('request')
-        limit = request.GET.get('recipe_limit')
+        limit = request.GET.get('recipes_limit')
         context = {'request': request}
         queryset = object.recipes.all()
         # queryset = Recipes.objects.filter(author=object)
@@ -301,5 +301,5 @@ class SubscribeSerializer(serializers.ModelSerializer):
             return False
         return Subscribe.objects.filter(user=user, author=object.id).exists()
 
-    def get_recipes_count(self, obj):
-        return obj.recipes.count()
+    def get_recipes_count(self, object):
+        return object.recipes.count()
